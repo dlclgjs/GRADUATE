@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>좌석 인증 관리자 페이지</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .info {
+            text-align: center;
+            margin-bottom: 10px;
+            color: #555;
+        }
+        table {
+            width: 100%;
+            max-width: 900px;
+            margin: 0 auto;
+            border-collapse: collapse;
+            background-color: #ffffff;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+        }
+        th, td {
+            border: 1px solid #ccc;
+            text-align: center;
+            padding: 8px;
+            font-size: 14px;
+        }
+        th {
+            background-color: #eaeaea;
+        }
+        tbody tr:nth-child(even) {
+            background-color: #fafafa;
+        }
+        .refresh-btn {
+            display: block;
+            margin: 10px auto 20px auto;
+            padding: 8px 16px;
+            font-size: 14px;
+            cursor: pointer;
+        }
+        .empty-row {
+            text-align: center;
+            color: #777;
+        }
+    </style>
+
+    <script>
+        // 관리자용 사용자 목록 불러오기
+        async function loadAdminUsers() {
+            const tbody = document.getElementById("admin-users-body");
+            tbody.innerHTML = ""; // 기존 행 초기화
+
+            try {
+                const res = await fetch("/api/admin/users");
+                if (!res.ok) {
+                    throw new Error("서버 응답 오류");
+                }
+
+                const users = await res.json();
+
+                if (!users || users.length === 0) {
+                    const row = document.createElement("tr");
+                    row.innerHTML = "<td colspan='4' class='empty-row'>현재 인증된 사용자가 없습니다.</td>";
+                    tbody.appendChild(row);
+                    return;
+                }
+
+                users.forEach(user => {
+                    const row = document.createElement("tr");
+
+                    const studentId = user.studentId || "";
+                    const floor = user.floor || "";
+                    const seatType = user.seatType || "";
+
+                    let timeText = "";
+                    if (user.time) {
+                        const d = new Date(user.time);
+                        timeText = d.toLocaleString("ko-KR");
+                    }
+
+                    row.innerHTML = `
+                        <td>${studentId}</td>
+                        <td>${floor}</td>
+                        <td>${seatType}</td>
+                        <td>${timeText}</td>
+                    `;
+
+                    tbody.appendChild(row);
+                });
+            } catch (err) {
+                console.error("관리자 데이터 로드 실패:", err);
+                const row = document.createElement("tr");
+                row.innerHTML = "<td colspan='4' class='empty-row'>데이터를 불러오는 중 오류가 발생했습니다.</td>";
+                tbody.appendChild(row);
+            }
+        }
+
+        window.onload = function () {
+            loadAdminUsers();
+            // 필요하면 주석 풀고 주기적 갱신 가능 (예: 10초마다)
+            // setInterval(loadAdminUsers, 10000);
+        };
+    </script>
+</head>
+<body>
+    <h1>좌석 인증 관리자 페이지</h1>
+    <div class="info">
+        현재 인증되어 있는 사용자 목록입니다. (만료된 사용자는 1시간 후 자동 제거)
+    </div>
+    <button class="refresh-btn" onclick="loadAdminUsers()">새로고침</button>
+
+    <table>
+        <thead>
+            <tr>
+                <th>학번</th>
+                <th>층/열람실</th>
+                <th>좌석 유형</th>
+                <th>인증 시간</th>
+            </tr>
+        </thead>
+        <tbody id="admin-users-body">
+            <!-- JS에서 행 추가 -->
+        </tbody>
+    </table>
+</body>
+</html>

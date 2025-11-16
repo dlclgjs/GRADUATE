@@ -4,7 +4,45 @@
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>SEAT ALERT</title>
+
+    <style>
+        body {
+            font-family: "Arial", sans-serif;
+            padding: 20px;
+            line-height: 1.6;
+        }
+
+        h1 {
+            margin-bottom: 10px;
+        }
+
+        h2 {
+            margin-top: 20px;
+        }
+
+        .button-container {
+            margin-top: 30px;
+            display: flex;
+            gap: 15px;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            text-decoration: none;
+            font-size: 16px;
+        }
+
+        .btn:hover {
+            background-color: #005bb5;
+        }
+    </style>
 </head>
+
 <body>
     <h1>열람실 좌석인증시스템 운영 안내</h1>
     <br>
@@ -17,5 +55,12 @@
         • 도용 등의 타인의 정보를 이용한 부정 사용이 확인될 경우 좌석 이용이 제한될 수 있습니다.<br>
         • 개인 소지품 분실·파손에 대한 책임은 이용자 본인에게 있습니다.<br>
     </p>
+
+    <!-- 버튼 구역 -->
+    <div class="button-container">
+        <a href="https://dlclgjs.github.io/subject/select.html" class="btn">메인 화면</a>
+        <a href="https://dlclgjs.github.io/subject/seatInfo.html" class="btn">좌석 현황</a>
+    </div>
+
 </body>
 </html>

@@ -10,6 +10,7 @@ app.use(express.static(__dirname));
 
 const DATA_FILE = path.join(__dirname, "data.json");
 
+// 좌석 유지 시간: 1시간
 const EXPIRE_MS = 60 * 60 * 1000;
 
 function loadData() {
@@ -26,15 +27,14 @@ function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
 }
 
+// 1시간 지난 사용자 정리
 function cleanExpiredUsers(data) {
   const now = Date.now();
   let changed = false;
 
   for (const userKey of Object.keys(data.users || {})) {
     const user = data.users[userKey];
-    if (!user || !user.time) {
-      continue;
-    }
+    if (!user || !user.time) continue;
 
     const elapsed = now - user.time;
 
@@ -42,13 +42,14 @@ function cleanExpiredUsers(data) {
       const { floor, seatType } = user;
 
       if (
-        data.seats&&data.seats[floor]&&
-        data.seats[floor][seatType]&&data.seats[floor][seatType].used > 0
+        data.seats &&
+        data.seats[floor] &&
+        data.seats[floor][seatType] &&
+        data.seats[floor][seatType].used > 0
       ) {
         data.seats[floor][seatType].used -= 1;
       }
 
-      // users 목록에서 제거
       delete data.users[userKey];
       changed = true;
     }
@@ -59,7 +60,6 @@ function cleanExpiredUsers(data) {
   }
 }
 
-// 매번 사용할 때: 읽고, 만료 정리까지 한 번에
 function loadDataAndClean() {
   const data = loadData();
   if (!data.seats) data.seats = {};
@@ -74,7 +74,6 @@ app.get("/api/seatInfo", (req, res) => {
   res.json(data.seats);
 });
 
-// 로그인 인증 API
 app.post("/api/login", (req, res) => {
   const { studentId, password, floor, seatType, agree } = req.body;
 
@@ -142,6 +141,12 @@ app.post("/api/login", (req, res) => {
     ok: true,
     message: "인증 성공!",
   });
+});
+
+app.get("/api/admin/users", (req, res) => {
+  const data = loadDataAndClean();
+  const users = Object.values(data.users || {}); 
+  res.json(users);
 });
 
 app.listen(PORT, "0.0.0.0", () => {

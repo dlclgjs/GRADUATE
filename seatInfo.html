@@ -31,12 +31,10 @@
     </style>
 
     <script>
-        // 직전에 받은 좌석 데이터(JSON 문자열)을 저장해 둘 변수
-        let previousSeatsJson = null;
-
         // 서버에서 좌석 정보를 가져와 테이블을 갱신하는 함수
         async function loadSeatTable() {
             const tableBody = document.getElementById("seats-table-body");
+            tableBody.innerHTML = ""; 
 
             try {
                 const res = await fetch("/api/seatInfo");
@@ -45,16 +43,6 @@
                 }
 
                 const seats = await res.json();
-
-                const currentJson = JSON.stringify(seats);
-
-                if (previousSeatsJson !== null && previousSeatsJson === currentJson) {
-                    return;
-                }
-
-                previousSeatsJson = currentJson;
-
-                tableBody.innerHTML = "";
 
                 const floors = Object.keys(seats);
                 if (floors.length === 0) {
@@ -85,13 +73,17 @@
                     tableBody.appendChild(row);
                 });
 
+            } catch (err) {
+                console.error("좌석 정보 불러오기 실패:", err);
+                const errorRow = document.createElement("tr");
+                errorRow.innerHTML = "<td colspan='4'>서버에서 좌석 정보를 불러오는 중 오류가 발생했습니다.</td>";
+                tableBody.appendChild(errorRow);
             }
         }
 
-      
         window.onload = function () {
-            loadSeatTable();
-            setInterval(loadSeatTable, 10000); 
+            loadSeatTable();            
+            setInterval(loadSeatTable, 10000);
         };
     </script>
 </head>
@@ -117,5 +109,3 @@
     </table>
 </body>
 </html>
-
-

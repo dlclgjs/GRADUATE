@@ -75,7 +75,6 @@
                 }
 
                 alert("사용자 삭제가 완료되었습니다.");
-                // 삭제 후 목록 다시 로드
                 loadAdminUsers();
             } catch (err) {
                 console.error("사용자 삭제 실패:", err);
@@ -83,10 +82,9 @@
             }
         }
 
-        // 관리자용 사용자 목록 불러오기
         async function loadAdminUsers() {
             const tbody = document.getElementById("admin-users-body");
-            tbody.innerHTML = ""; // 기존 행 초기화
+            tbody.innerHTML = "";
 
             try {
                 const res = await fetch("/api/admin/users");
@@ -140,8 +138,6 @@
 
         window.onload = function () {
             loadAdminUsers();
-            // 필요하면 주석 풀고 주기적 갱신 가능 (예: 10초마다)
-            // setInterval(loadAdminUsers, 10000);
         };
     </script>
 </head>
@@ -163,7 +159,6 @@
             </tr>
         </thead>
         <tbody id="admin-users-body">
-            <!-- JS에서 행 추가 -->
         </tbody>
     </table>
 </body>

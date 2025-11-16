@@ -29,97 +29,61 @@
             text-align: center;
         }
     </style>
+
     <script>
-        // 좌석 데이터를 가져오고 만료된 데이터를 제거하는 함수
-        function getSeatData() {
-            let data = JSON.parse(localStorage.getItem("seatData"));
-            if (!data) {
-                // 기본 데이터 설정
-                data = {
-                    "1층": {
-                        disabled: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        plug: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        regular: { current: 0, total: 10, timestamp: new Date().getTime() }
-                    },
-                    "2층": {
-                        disabled: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        plug: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        regular: { current: 0, total: 10, timestamp: new Date().getTime() }
-                    },
-                    "3층": {
-                        disabled: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        plug: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        regular: { current: 0, total: 10, timestamp: new Date().getTime() }
-                    },
-                    "4층": {
-                        disabled: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        plug: { current: 0, total: 5, timestamp: new Date().getTime() },
-                        regular: { current: 0, total: 10, timestamp: new Date().getTime() }
-                    },
-                    "1열람실": {
-                        disabled: { current: 0, total: 6, timestamp: new Date().getTime() },
-                        plug: { current: 0, total: 24, timestamp: new Date().getTime() },
-                        regular: { current: 0, total: 368, timestamp: new Date().getTime() }
-                    },
-                    "2열람실": {
-                        disabled: { current: 0, total: 11, timestamp: new Date().getTime() },
-                        plug: { current: 0, total: 18, timestamp: new Date().getTime() },
-                        regular: { current: 0, total: 312, timestamp: new Date().getTime() }
-                    }
-                };
-                localStorage.setItem("seatData", JSON.stringify(data));  // 기본 데이터 저장
-            }
-
-            const currentTime = new Date().getTime();
-            const updatedData = {};  // 만료된 데이터를 제거한 새 데이터 저장
-
-            for (let floor in data) {
-                updatedData[floor] = {};
-                for (let seatType in data[floor]) {
-                    const seat = data[floor][seatType];
-                    const elapsedTime = currentTime - seat.timestamp;
-
-                    if (elapsedTime > 90 * 60 * 1000) {  // 90분 이상 경과한 경우
-                        updatedData[floor][seatType] = { current: 0, total: seat.total, timestamp: seat.timestamp };
-                    } else {
-                        updatedData[floor][seatType] = { ...seat }; // 최신 데이터 유지
-                    }
-                }
-            }
-
-            localStorage.setItem("seatData", JSON.stringify(updatedData));  // 새 데이터 저장
-            return updatedData;
-        }
-
-        // 테이블 행을 생성하는 함수
-        function generateTableRows() {
-            const seatData = getSeatData();  // 갱신된 좌석 데이터 가져오기
+        // 서버에서 좌석 정보를 가져와 테이블을 갱신하는 함수
+        async function loadSeatTable() {
             const tableBody = document.getElementById("seats-table-body");
-            tableBody.innerHTML = "";  // 기존 데이터 초기화
+            tableBody.innerHTML = ""; 
 
-            if (Object.keys(seatData).length === 0) {
-                const noDataRow = document.createElement("tr");
-                noDataRow.innerHTML = "<td colspan='4'>데이터가 없습니다</td>";
-                tableBody.appendChild(noDataRow);
-                return;
-            }
+            try {
+                const res = await fetch("/api/seatInfo");
+                if (!res.ok) {
+                    throw new Error("서버 응답 오류");
+                }
 
-            for (const floor in seatData) {
-                const floorData = seatData[floor];
-                const row = document.createElement("tr");
-                row.innerHTML = `
-                    <td>${floor}</td>
-                    <td>${floorData.disabled ? `${floorData.disabled.current}/${floorData.disabled.total}` : "N/A"}</td>
-                    <td>${floorData.plug ? `${floorData.plug.current}/${floorData.plug.total}` : "N/A"}</td>
-                    <td>${floorData.regular ? `${floorData.regular.current}/${floorData.regular.total}` : "N/A"}</td>
-                `;
-                tableBody.appendChild(row);
+                const seats = await res.json();
+
+                const floors = Object.keys(seats);
+                if (floors.length === 0) {
+                    const noDataRow = document.createElement("tr");
+                    noDataRow.innerHTML = "<td colspan='4'>데이터가 없습니다</td>";
+                    tableBody.appendChild(noDataRow);
+                    return;
+                }
+
+                floors.forEach(floor => {
+                    const floorData = seats[floor] || {};
+
+                    const disabled = floorData["장애인석"];
+                    const plug     = floorData["콘센트석"];
+                    const regular  = floorData["일반석"];
+
+                    const disabledText = disabled ? `${disabled.used}/${disabled.total}` : "N/A";
+                    const plugText     = plug     ? `${plug.used}/${plug.total}`       : "N/A";
+                    const regularText  = regular  ? `${regular.used}/${regular.total}` : "N/A";
+
+                    const row = document.createElement("tr");
+                    row.innerHTML = `
+                        <td>${floor}</td>
+                        <td>${disabledText}</td>
+                        <td>${plugText}</td>
+                        <td>${regularText}</td>
+                    `;
+                    tableBody.appendChild(row);
+                });
+
+            } catch (err) {
+                console.error("좌석 정보 불러오기 실패:", err);
+                const errorRow = document.createElement("tr");
+                errorRow.innerHTML = "<td colspan='4'>서버에서 좌석 정보를 불러오는 중 오류가 발생했습니다.</td>";
+                tableBody.appendChild(errorRow);
             }
         }
 
-        // 페이지 로드 시 테이블 생성
         window.onload = function () {
-            generateTableRows(); // 테이블 생성
+            loadSeatTable();            
+            setInterval(loadSeatTable, 2000);
         };
     </script>
 </head>

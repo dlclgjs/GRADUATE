@@ -10,9 +10,10 @@ app.use(express.static(__dirname));
 
 const DATA_FILE = path.join(__dirname, "data.json");
 
-// 좌석 유지 시간: 1시간
+// 좌석 유지 시간: 1시간 (밀리초)
 const EXPIRE_MS = 60 * 60 * 1000;
 
+// data.json 읽기
 function loadData() {
   try {
     const raw = fs.readFileSync(DATA_FILE, "utf-8");
@@ -23,6 +24,7 @@ function loadData() {
   }
 }
 
+// data.json 저장
 function saveData(data) {
   fs.writeFileSync(DATA_FILE, JSON.stringify(data, null, 2), "utf-8");
 }
@@ -41,6 +43,7 @@ function cleanExpiredUsers(data) {
     if (elapsed > EXPIRE_MS) {
       const { floor, seatType } = user;
 
+      // 사용 중인 좌석이면 used 감소
       if (
         data.seats &&
         data.seats[floor] &&
@@ -50,6 +53,7 @@ function cleanExpiredUsers(data) {
         data.seats[floor][seatType].used -= 1;
       }
 
+      // 사용자 삭제
       delete data.users[userKey];
       changed = true;
     }
@@ -60,6 +64,7 @@ function cleanExpiredUsers(data) {
   }
 }
 
+// 데이터 로드 + 만료 사용자 정리
 function loadDataAndClean() {
   const data = loadData();
   if (!data.seats) data.seats = {};
@@ -69,11 +74,13 @@ function loadDataAndClean() {
   return data;
 }
 
+// 좌석 현황 가져오기
 app.get("/api/seatInfo", (req, res) => {
   const data = loadDataAndClean();
   res.json(data.seats);
 });
 
+// 로그인 및 좌석 인증
 app.post("/api/login", (req, res) => {
   const { studentId, password, floor, seatType, agree } = req.body;
 
@@ -97,6 +104,7 @@ app.post("/api/login", (req, res) => {
 
   const userKey = String(studentId); // 학번 기준 중복 체크
 
+  // 이미 인증된 사용자
   if (data.users[userKey]) {
     return res.status(400).json({
       ok: false,
@@ -116,6 +124,7 @@ app.post("/api/login", (req, res) => {
 
   const seatInfo = data.seats[floor][seatType];
 
+  // 좌석이 가득 찼는지 확인
   if (seatInfo.used >= seatInfo.total) {
     return res.status(400).json({
       ok: false,
@@ -124,7 +133,7 @@ app.post("/api/login", (req, res) => {
     });
   }
 
-  // 좌석 +1
+  // 좌석 사용 수 +1
   seatInfo.used += 1;
 
   // 사용자 기록 저장 (인증 시각 포함)
@@ -143,12 +152,51 @@ app.post("/api/login", (req, res) => {
   });
 });
 
+// 관리자용: 현재 인증된 사용자 목록 조회
 app.get("/api/admin/users", (req, res) => {
   const data = loadDataAndClean();
-  const users = Object.values(data.users || {}); 
+  const users = Object.values(data.users || {});
   res.json(users);
 });
 
+// 관리자용: 특정 사용자 삭제
+app.delete("/api/admin/users/:studentId", (req, res) => {
+  const studentId = String(req.params.studentId);
+  const data = loadDataAndClean();
+
+  const user = data.users[studentId];
+  if (!user) {
+    return res.status(404).json({
+      ok: false,
+      message: "해당 사용자를 찾을 수 없습니다.",
+    });
+  }
+
+  const { floor, seatType } = user;
+
+  // 좌석 사용 중이면 used 감소
+  if (
+    data.seats &&
+    data.seats[floor] &&
+    data.seats[floor][seatType] &&
+    data.seats[floor][seatType].used > 0
+  ) {
+    data.seats[floor][seatType].used -= 1;
+  }
+
+  // 사용자 삭제
+  delete data.users[studentId];
+
+  // 변경 내용 저장
+  saveData(data);
+
+  return res.json({
+    ok: true,
+    message: "사용자 삭제가 완료되었습니다.",
+  });
+});
+
+// 서버 실행
 app.listen(PORT, "0.0.0.0", () => {
   console.log(`Server running on port ${PORT}`);
 });

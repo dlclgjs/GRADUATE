@@ -25,34 +25,61 @@
             margin-bottom: 20px;
             font-size: 18px;
             color: white;
+            line-height: 1.4;
         }
         .login_box h4 strong {
             color: #FFA500;
         }
         table {
             width: 100%;
+            border-collapse: collapse;
         }
         td {
-            padding: 10px;
+            padding: 8px 10px;
+            vertical-align: middle;
         }
         label {
             color: white;
             font-size: 14px;
+            display: inline-block;
+            width: 110px;
+            text-align: left;
         }
-        input {
+        input, select {
             padding: 10px;
             border: 1px solid #ccc;
             width: 100%;
             box-sizing: border-box;
             font-size: 14px;
         }
-        select {
-            padding: 10px;
-            border: 1px solid #ccc;
-            width: 70%;
-            box-sizing: border-box;
-            font-size: 14px;
+
+        /* 체크박스 */
+        .checkbox-cell {
+            display: flex;
+            align-items: center;
         }
+        .checkbox-input {
+            width: auto;
+            margin-left: 20px;  /* 조절 가능 */
+        }
+
+        /* 내용 보기 버튼 */
+        .info-btn {
+            width: auto;
+            padding: 6px 10px;
+            margin-left: 10px;
+            font-size: 12px;
+            border: none;
+            border-radius: 4px;
+            background-color: #005bb5;
+            color: white;
+            cursor: pointer;
+        }
+        .info-btn:hover {
+            background-color: #004f9e;
+        }
+
+        /* 인증 버튼 */
         button {
             padding: 10px 20px;
             background-color: #0066cc;
@@ -60,13 +87,76 @@
             border: none;
             border-radius: 5px;
             cursor: pointer;
+            margin-top: 10px;
+            width: 100%;
         }
         button:hover {
             background-color: #005bb5;
         }
+
+        /* 모달(팝업) */
+        .modal {
+            display: none;
+            position: fixed;
+            z-index: 999;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0,0,0,0.4);
+            justify-content: center;
+            align-items: center;
+        }
+        .modal-content {
+            background-color: #ffffff;
+            padding: 20px;
+            width: 80%;
+            max-width: 400px;
+            border-radius: 8px;
+            box-shadow: 0 0 10px rgba(0,0,0,0.3);
+            text-align: left;
+        }
+        .modal-content h3 {
+            margin-top: 0;
+            margin-bottom: 10px;
+            font-size: 18px;
+        }
+        .modal-content p {
+            font-size: 14px;
+            line-height: 1.5;
+            margin-bottom: 15px;
+        }
+
+        /* 모달 버튼 */
+        .modal-agree-btn {
+            padding: 6px 12px;
+            background-color: #008000;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 8px;
+        }
+        .modal-agree-btn:hover {
+            background-color: #006400;
+        }
+
+        .modal-close-btn {
+            padding: 6px 12px;
+            background-color: #0066cc;
+            color: white;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+        .modal-close-btn:hover {
+            background-color: #005bb5;
+        }
     </style>
+
     <script>
-        // 좌석 인증 처리 함수
         function authenticate() {
             const floor = document.getElementById("floor").value;
             const seatType = document.getElementById("seat_type").value;
@@ -83,7 +173,6 @@
                 "일반석": "regular"
             };
 
-            // 해당 층에 대한 데이터가 없으면 기본값으로 초기화
             if (!seatData[floor]) {
                 seatData[floor] = {
                     disabled: { current: 0, total: 10, timestamp: new Date().getTime() },
@@ -92,14 +181,11 @@
                 };
             }
 
-            // 해당 좌석 유형의 현재 예약 수 증가
             seatData[floor][seatMap[seatType]].current++;
-            seatData[floor][seatMap[seatType]].timestamp = new Date().getTime(); // timestamp 추가
+            seatData[floor][seatMap[seatType]].timestamp = new Date().getTime();
             localStorage.setItem("seatData", JSON.stringify(seatData));
-
         }
 
-        // 폼 유효성 검사
         function validateForm() {
             const studentID = document.getElementById("StudentID").value;
             const password = document.getElementById("pw").value;
@@ -111,56 +197,80 @@
                 alert("ID를 입력하여 주십시오.");
                 return false;
             }
-
             if (studentID.length !== 8 || isNaN(studentID)) {
                 alert("학번은 8자리 숫자로 입력하여 주십시오.");
                 return false;
             }
-
             if (password === "") {
                 alert("PASSWORD를 입력하여 주십시오.");
                 return false;
             }
-
             if (floor === "") {
                 alert("층/열람실을 선택하세요.");
                 return false;
             }
-
             if (seatType === "") {
                 alert("좌석 유형을 선택하세요.");
                 return false;
             }
-
             if (!checkbox) {
                 alert("장시간 방치 시 자리 정리에 동의하셔야 합니다.");
                 return false;
             }
 
-            authenticate();  // 인증 함수 호출
-            // 유효성 검사가 성공하면 이동
+            authenticate();
             window.location.href = "https://dlclgjs.github.io/subject/ALERT.html";
-            return false; // 폼 기본 제출 방지
+            return false;
         }
+
+        /* 팝업 열기 */
+        function openAgreementModal() {
+            document.getElementById("agreementModal").style.display = "flex";
+        }
+
+        /* 팝업 닫기 */
+        function closeAgreementModal() {
+            document.getElementById("agreementModal").style.display = "none";
+        }
+
+        /* 동의 → 체크박스 자동 체크 후 닫기 */
+        function agreeAndClose() {
+            document.getElementById("check").checked = true;
+            closeAgreementModal();
+        }
+
+        /* 배경 클릭 시 닫기 */
+        window.addEventListener("click", function(event) {
+            const modal = document.getElementById("agreementModal");
+            if (event.target === modal) {
+                closeAgreementModal();
+            }
+        });
     </script>
 </head>
+
 <body>
     <div class="login_box">
-        <h4><strong>D</strong>AEGU <strong>U</strong>NIVERSITY <strong>L</strong>IBRARY<br>
-            <strong>C</strong>ERTIFICATION <strong>S</strong>YSTEM</h4>
+        <h4>
+            <strong>D</strong>AEGU <strong>U</strong>NIVERSITY <strong>L</strong>IBRARY<br>
+            <strong>C</strong>ERTIFICATION <strong>S</strong>YSTEM
+        </h4>
+
         <form onsubmit="return validateForm();">
             <table>
                 <tr>
                     <td><label for="StudentID">학번:</label></td>
                     <td><input type="text" id="StudentID" name="StudentID"></td>
                 </tr>
+
                 <tr>
-                    <td><label for="password">비밀번호:</label></td>
+                    <td><label for="pw">비밀번호:</label></td>
                     <td><input type="password" id="pw" name="pw"></td>
                 </tr>
+
                 <tr>
-                    <td colspan="2">
-                        <label for="floor">층/열람실 선택:</label>
+                    <td><label for="floor">층/열람실:</label></td>
+                    <td>
                         <select id="floor" name="floor">
                             <option value="">선택하세요</option>
                             <option value="1층">1층</option>
@@ -172,9 +282,10 @@
                         </select>
                     </td>
                 </tr>
+
                 <tr>
-                    <td colspan="2">
-                        <label for="seat_type">좌석 유형 선택:</label>
+                    <td><label for="seat_type">좌석 유형:</label></td>
+                    <td>
                         <select id="seat_type" name="seat_type">
                             <option value="">선택하세요</option>
                             <option value="장애인석">장애인석</option>
@@ -183,20 +294,41 @@
                         </select>
                     </td>
                 </tr>
+
                 <tr>
-                    <td colspan="2" style="text-align: left;">
-                        <label for="check" style="color: white; font-size: 16px; display: inline-flex; align-items: center;">
-                            자리 정리 동의
-                        </label>
-                        <input type="checkbox" id="check" name="checkbox" value="checkbox" style="margin-left: 8px;">
-                </tr>  
+                    <td><label for="check">자리 정리 동의:</label></td>
+                    <td class="checkbox-cell">
+                        <input type="checkbox" id="check" name="checkbox" value="checkbox" class="checkbox-input">
+                        <button type="button" class="info-btn" onclick="openAgreementModal()">내용 보기</button>
+                    </td>
+                </tr>
+
                 <tr>
-                    <td colspan="2" style="text-align: center;">
+                    <td colspan="2">
                         <button type="submit">인증</button>
                     </td>
                 </tr>
+
             </table>
         </form>
     </div>
+
+    <!-- 팝업 -->
+    <div id="agreementModal" class="modal">
+        <div class="modal-content">
+            <h3>자리 정리 동의 안내</h3>
+            <p>
+                본 인증 시스템은 도서관/열람실 좌석의 공정한 이용을 위해 운영됩니다.<br><br>
+                • 장시간 자리를 비운 경우, 관리자는 사전 안내 없이 좌석을 정리(반납 처리)할 수 있습니다.<br>
+                • 허위 인증, 타인의 정보를 이용한 인증 등 부정 사용이 확인될 경우 좌석 이용이 제한될 수 있습니다.<br>
+                • 개인 소지품 분실·파손에 대한 책임은 이용자 본인에게 있습니다.<br><br>
+                위 내용을 확인하였으며, 이에 동의합니다.
+            </p>
+
+            <button type="button" class="modal-agree-btn" onclick="agreeAndClose()">동의합니다</button>
+            <button type="button" class="modal-close-btn" onclick="closeAgreementModal()">닫기</button>
+        </div>
+    </div>
+
 </body>
 </html>

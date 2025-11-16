@@ -1,9 +1,10 @@
 <!DOCTYPE html>
 <html lang="ko">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>층별 잔여 좌석 현황</title>
+
     <style>
         body {
             font-family: Arial, sans-serif;
@@ -13,90 +14,75 @@
             width: 100%;
             border-collapse: collapse;
             margin-bottom: 20px;
+            text-align: center;
         }
         th, td {
             border: 1px solid #ccc;
-            text-align: center;
             padding: 10px;
         }
         th {
             background-color: #f4f4f4;
         }
         caption {
-            font-size: 1.5em;
-            margin-bottom: 10px;
+            font-size: 1.4em;
             font-weight: bold;
-            text-align: center;
+            margin-bottom: 10px;
+        }
+        .caption-right {
+            float: right;
+            font-size: 0.9em;
+            font-weight: normal;
         }
     </style>
 
     <script>
-        // 서버에서 좌석 정보를 가져와 테이블을 갱신하는 함수
         async function loadSeatTable() {
-            const tableBody = document.getElementById("seats-table-body");
-            tableBody.innerHTML = ""; 
+            const tbody = document.getElementById("seats-body");
+            tbody.innerHTML = "";
 
             try {
                 const res = await fetch("/api/seatInfo");
-                if (!res.ok) {
-                    throw new Error("서버 응답 오류");
-                }
-
                 const seats = await res.json();
 
-                const floors = Object.keys(seats);
-                if (floors.length === 0) {
-                    const noDataRow = document.createElement("tr");
-                    noDataRow.innerHTML = "<td colspan='4'>데이터가 없습니다</td>";
-                    tableBody.appendChild(noDataRow);
+                if (Object.keys(seats).length === 0) {
+                    tbody.innerHTML = "<tr><td colspan='4'>데이터가 없습니다</td></tr>";
                     return;
                 }
 
-                floors.forEach(floor => {
-                    const floorData = seats[floor] || {};
-
-                    const disabled = floorData["장애인석"];
-                    const plug     = floorData["콘센트석"];
-                    const regular  = floorData["일반석"];
-
-                    const disabledText = disabled ? `${disabled.used}/${disabled.total}` : "N/A";
-                    const plugText     = plug     ? `${plug.used}/${plug.total}`       : "N/A";
-                    const regularText  = regular  ? `${regular.used}/${regular.total}` : "N/A";
-
-                    const row = document.createElement("tr");
-                    row.innerHTML = `
-                        <td>${floor}</td>
-                        <td>${disabledText}</td>
-                        <td>${plugText}</td>
-                        <td>${regularText}</td>
+                for (const floor in seats) {
+                    const s = seats[floor];
+                    const row = `
+                        <tr>
+                            <td>${floor}</td>
+                            <td>${s["장애인석"]?.used}/${s["장애인석"]?.total}</td>
+                            <td>${s["콘센트석"]?.used}/${s["콘센트석"]?.total}</td>
+                            <td>${s["일반석"]?.used}/${s["일반석"]?.total}</td>
+                        </tr>
                     `;
-                    tableBody.appendChild(row);
-                });
+                    tbody.insertAdjacentHTML("beforeend", row);
+                }
 
-            } catch (err) {
-                console.error("좌석 정보 불러오기 실패:", err);
-                const errorRow = document.createElement("tr");
-                errorRow.innerHTML = "<td colspan='4'>서버에서 좌석 정보를 불러오는 중 오류가 발생했습니다.</td>";
-                tableBody.appendChild(errorRow);
+            } catch {
+                tbody.innerHTML = "<tr><td colspan='4'>서버 오류가 발생했습니다.</td></tr>";
             }
         }
 
-        window.onload = function () {
-            loadSeatTable();            
+        window.onload = () => {
+            loadSeatTable();
             setInterval(loadSeatTable, 10000);
         };
     </script>
 </head>
+
 <body>
     <h1>층별 잔여 좌석 현황</h1>
 
     <table>
         <caption>
-            <div class="caption-container" style="display: flex; justify-content: space-between; align-items: center; padding: 0 10px;">
-                <span>1층 ~ 5층 좌석 현황</span>
-                <span>(현재/총)</span>
-            </div>
+            1층 ~ 5층 좌석 현황
+            <span class="caption-right">(현재/총)</span>
         </caption>
+
         <thead>
             <tr>
                 <th>층</th>
@@ -105,7 +91,8 @@
                 <th>일반석</th>
             </tr>
         </thead>
-        <tbody id="seats-table-body"></tbody>
+
+        <tbody id="seats-body"></tbody>
     </table>
 </body>
 </html>

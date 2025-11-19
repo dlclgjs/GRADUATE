@@ -1,0 +1,135 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>재인증까지 남은 시간 확인</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 20px;
+            background-color: #f5f5f5;
+        }
+        h1 {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .container {
+            max-width: 400px;
+            margin: 0 auto;
+            background-color: #ffffff;
+            padding: 20px;
+            box-shadow: 0 0 8px rgba(0,0,0,0.1);
+            border-radius: 8px;
+            text-align: center;
+        }
+        label {
+            display: block;
+            margin-bottom: 8px;
+            text-align: left;
+        }
+        input {
+            width: 100%;
+            padding: 8px;
+            margin-bottom: 12px;
+            box-sizing: border-box;
+        }
+        button {
+            padding: 8px 16px;
+            cursor: pointer;
+        }
+        .result {
+            margin-top: 16px;
+            font-size: 18px;
+            font-weight: bold;
+        }
+        .message {
+            margin-top: 8px;
+            color: #555;
+        }
+    </style>
+</head>
+<body>
+    <h1>재인증까지 남은 시간 확인</h1>
+    <div class="container">
+        <label for="studentId">학번</label>
+        <input type="text" id="studentId" placeholder="학번 8자리를 입력하세요">
+        <button onclick="checkRemaining()">조회</button>
+
+        <div class="result" id="resultText"></div>
+        <div class="message" id="messageText"></div>
+    </div>
+
+    <script>
+        let timerId = null;
+        let expireAt = null;
+
+        function formatTime(ms) {
+            if (ms < 0) ms = 0;
+            const totalSeconds = Math.floor(ms / 1000);
+            const hours = Math.floor(totalSeconds / 3600);
+            const minutes = Math.floor((totalSeconds % 3600) / 60);
+            const seconds = totalSeconds % 60;
+
+            const hh = String(hours).padStart(2, "0");
+            const mm = String(minutes).padStart(2, "0");
+            const ss = String(seconds).padStart(2, "0");
+
+            return `${hh}:${mm}:${ss}`;
+        }
+
+        async function checkRemaining() {
+            const studentId = document.getElementById("studentId").value.trim();
+            const resultText = document.getElementById("resultText");
+            const messageText = document.getElementById("messageText");
+
+            if (!studentId) {
+                alert("학번을 입력해 주세요.");
+                return;
+            }
+
+            // 이전 타이머 제거
+            if (timerId) {
+                clearInterval(timerId);
+                timerId = null;
+            }
+            resultText.textContent = "";
+            messageText.textContent = "";
+
+            try {
+                const res = await fetch(`/api/time-remaining?studentId=${encodeURIComponent(studentId)}`);
+                const data = await res.json();
+
+                if (!data.ok) {
+                    resultText.textContent = "";
+                    messageText.textContent = data.message || "남은 시간을 확인할 수 없습니다.";
+                    return;
+                }
+
+                expireAt = data.expireAt;
+
+                const update = () => {
+                    const now = Date.now();
+                    const remaining = expireAt - now;
+                    if (remaining <= 0) {
+                        clearInterval(timerId);
+                        timerId = null;
+                        resultText.textContent = "00:00:00";
+                        messageText.textContent = "인증이 만료되었습니다.";
+                    } else {
+                        resultText.textContent = formatTime(remaining);
+                        messageText.textContent = "재인증까지 남은 시간";
+                    }
+                };
+
+                update(); // 즉시 1회 갱신
+                timerId = setInterval(update, 1000);
+
+            } catch (err) {
+                console.error(err);
+                alert("서버와 통신 중 오류가 발생했습니다.");
+            }
+        }
+    </script>
+</body>
+</html>
